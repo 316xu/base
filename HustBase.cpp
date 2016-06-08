@@ -14,6 +14,7 @@
 #include "RM_Manager.h"
 #include "SYS_Manager.h"
 
+
 //#pragma comment(lib,"PF_Manager.lib")
 //#pragma comment(lib,"RM_Manager.lib")
 //#pragma comment(lib,"IX_Manager.lib")
@@ -32,7 +33,7 @@ BEGIN_MESSAGE_MAP(CHustBaseApp, CWinApp)
 	ON_COMMAND(ID_APP_ABOUT, OnAppAbout)
 	ON_COMMAND(ID_CREATEDB, OnCreateDB)
 	ON_COMMAND(ID_OPENDB, OnOpenDB)
-	ON_COMMAND(ID_DROPDB, OnDropDb)
+	ON_COMMAND(ID_DROPDB, OnDropDB)
 	//}}AFX_MSG_MAP
 	// Standard file based document commands
 	ON_COMMAND(ID_FILE_NEW, CWinApp::OnFileNew)
@@ -167,16 +168,101 @@ void CHustBaseApp::OnAppAbout()
 void CHustBaseApp::OnCreateDB()
 {
 	//关联创建数据库按钮
+	LPITEMIDLIST rootLoation;
+	BROWSEINFO bi;
+	char szPathName[MAX_PATH];
+	char szTitle[] = "选择路径";
+	CString str;
+	char *dbPath, *dbName;
+	RC rc;
+	
+	/*CString tmp;
+	int len;
+	int len1;
+	*/
+
+	SHGetSpecialFolderLocation(NULL, CSIDL_DESKTOP, &rootLoation);
+	if (rootLoation == NULL) {
+		return;
+	}
+	ZeroMemory(&bi, sizeof(BROWSEINFO));
+	bi.pszDisplayName = szPathName;
+	bi.lpszTitle = szTitle;
+	bi.ulFlags = 0x0040;
+	bi.pidlRoot = rootLoation; // 文件夹对话框之根目录，不指定的话则为我的电脑
+	
+	LPITEMIDLIST idl = SHBrowseForFolder(&bi);
+	SHGetPathFromIDList(idl, str.GetBuffer(MAX_PATH * 2));
+	str.ReleaseBuffer();
+	BOOL bRet = CreateDirectory(str , NULL);//创建文件夹可
+
+	dbPath = str.GetBuffer(0);
+	dbName = szPathName;
+	rc = CreateDb(dbPath);
+	if (rc != SUCCESS){
+		return;
+	}
 }
 
 void CHustBaseApp::OnOpenDB() 
 {
-	// TODO: Add your command handler code here
-	//关联打开数据库按钮
+	//关联打开数据库按钮 
+	LPITEMIDLIST rootLoation;
+	BROWSEINFO bi;
+	RC rc;
+	TCHAR dbName[MAX_PATH];
+
+	SHGetSpecialFolderLocation(NULL, CSIDL_DESKTOP, &rootLoation);
+	if (rootLoation == NULL) {
+		return;
+	}
+	ZeroMemory(&bi, sizeof(bi));
+	bi.pidlRoot = rootLoation; // 文件夹对话框之根目录，不指定的话则为我的电脑
+	LPITEMIDLIST targetLocation = SHBrowseForFolder(&bi);
+	if (targetLocation != NULL) {
+		SHGetPathFromIDList(targetLocation, dbName);
+	}
+	
+	SetCurrentDirectory(dbName);
+	int i, j;
+	if ((i=access("SYSTABLES", 0) )!= 0 || (j=access("SYSCOLUMNS", 0)) != 0){
+		AfxMessageBox("打开的不是数据库");
+		return ;
+	}
+	CHustBaseApp::pathvalue = true;
+	CHustBaseDoc *pDoc;
+	pDoc = CHustBaseDoc::GetDoc();
+	pDoc->m_pTreeView->PopulateTree();
+	rc = OpenDb(dbName);
+	if (rc != SUCCESS){
+		return;
+	}
 }
 
-void CHustBaseApp::OnDropDb() 
+void CHustBaseApp::OnDropDB() 
 {
-	// TODO: Add your command handler code here
 	//关联删除数据库按钮
+	//关联打开数据库按钮 
+	LPITEMIDLIST rootLoation;
+	BROWSEINFO bi;
+	RC rc;
+	TCHAR targetPath[MAX_PATH];
+	char *dbName;
+
+	SHGetSpecialFolderLocation(NULL, CSIDL_DESKTOP, &rootLoation);
+	if (rootLoation == NULL) {
+		return;
+	}
+	ZeroMemory(&bi, sizeof(bi));
+	bi.pidlRoot = rootLoation; // 文件夹对话框之根目录，不指定的话则为我的电脑
+	LPITEMIDLIST targetLocation = SHBrowseForFolder(&bi);
+	if (targetLocation != NULL) {
+		SHGetPathFromIDList(targetLocation, targetPath);
+	}
+	CHustBaseApp::pathvalue = false;
+	dbName = targetPath;
+	rc =DropDb(dbName) ;
+	if (rc != SUCCESS){
+		return;
+	}
 }

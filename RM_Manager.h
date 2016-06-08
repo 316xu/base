@@ -3,8 +3,20 @@
 
 #include "PF_Manager.h"
 #include "str.h"
-
+//record manager 
 typedef int SlotNum;
+
+typedef enum{
+	NO_HINT
+}ClientHint;
+
+
+typedef struct {				//定义存储在文件头的数据
+	int nRecords;			//存储当前文件中包含的记录数
+	int recordSize;			//存储每个记录的大小
+	int recordsPerPage;		//存储一个分页可以装载的记录数
+	int firstRecordOffset;	//存储第一个记录的偏移值（字节）
+} RM_FileSubHeader;
 
 typedef struct {	
 	PageNum pageNum;	//记录所在页的页号
@@ -29,26 +41,39 @@ typedef struct
 	void *Lvalue,*Rvalue;
 }Con;
 
-typedef struct{//文件句柄
-	bool bOpen;//句柄是否打开（是否正在被使用）
-	//需要自定义其内部结构
+
+typedef struct {
+	int nRecords;		//页面当前的记录数
+} RM_PageSubHeader;
+
+typedef struct{
+	bool bOpen;		//该文件句柄是否已经与一个文件关联
+	PF_FileHandle pfFileHandle;	//页面文件操作
+	PF_PageHandle pfPageHandle_FileHdr;	//头页面的操作
+	PageNum pageNum_FileHdr;	//头页面的页面号
+	RM_FileSubHeader *fileSubHeader;	//存储文件子头文件数据的副本
+	char *pBitmap;
 }RM_FileHandle;
 
 typedef struct{
-	bool  bOpen;		//扫描是否打开 
-	RM_FileHandle  *pRMFileHandle;		//扫描的记录文件句柄
-	int  conNum;		//扫描涉及的条件数量 
-	Con  *conditions;	//扫描涉及的条件数组指针
-    PF_PageHandle  PageHandle; //处理中的页面句柄
-	PageNum  pn; 	//扫描即将处理的页面号
-	SlotNum  sn;		//扫描即将处理的插槽号
+	bool bOpen;		//扫描是否打开 
+	RM_FileHandle *pRMFileHandle;	//指向记录文件操作的指针
+	int conNum;		//涉及的条件数量 
+	Con *conditions;	//涉及的条件
+	ClientHint pinHint;  //用于记录管理组件指定页面的固定策略
+    int N;		     // 固定在缓冲区中的页，与指定的页面固定策略有关
+    int pinnedPageCount; // 实际固定在缓冲区的页面数
+    PF_PageHandle pfPageHandles[PF_BUFFER_SIZE]; // 固定在缓冲区页面所对应的页面操作列表
+	int phIx;		//当前被扫描页面的操作索引
+	SlotNum snIx;		//下一个被扫描的插槽的插槽号
+	PageNum pnLast; 	//上一个固定页面的页面号
+	//RM_FileSubHeader rmFileSubHeader; //存储记录文件的文件头的副本
 }RM_FileScan;
-
 
 
 RC GetNextRec(RM_FileScan *rmFileScan,RM_Record *rec);
 
-RC OpenScan(RM_FileScan *rmFileScan,RM_FileHandle *fileHandle,int conNum,Con *conditions);
+RC OpenScan(RM_FileScan *rmFileScan,RM_FileHandle *fileHandle,int conNum,Con *conditions,ClientHint pinHint);
 
 RC UpdateRec (RM_FileHandle *fileHandle,const RM_Record *rec);
 

@@ -137,7 +137,9 @@ void CTableList::displayTabInfo(CString ParentNode)
 	condition.compOp=EQual;
 	condition.Rvalue=(LPSTR)(LPCTSTR)ParentNode;
 
-	rc=OpenScan(&FileScan,&fileHandle,1,&condition);
+
+		rc=OpenScan(&FileScan,&fileHandle,1,&condition,NO_HINT);
+
 	if(rc!=SUCCESS)
 		AfxMessageBox("初始化文件扫描失败");
 	rc=GetNextRec(&FileScan,&rec);
@@ -179,7 +181,10 @@ void CTableList::displayTabInfo(CString ParentNode)
 	if(rc!=SUCCESS)
 		AfxMessageBox("数据表文件打开失败");
 	FileScan.bOpen=0;
-	rc=OpenScan(&FileScan,&fileHandle,0,NULL);
+
+
+	rc=OpenScan(&FileScan,&fileHandle,0,NULL,NO_HINT);
+
 	if(rc!=SUCCESS)
 		AfxMessageBox("初始化文件扫描失败");
 	while(GetNextRec(&FileScan,&rec)==SUCCESS)

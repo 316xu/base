@@ -141,78 +141,88 @@ void CEditArea::OnRunBtn()
 		switch (sql_str->flag)
 		{
 			case 1:
-			//判断SQL语句为select语句
-			pDoc->infoCount = 1;
-			pDoc->Info[0] = "select功能未实现";
-			displayInfo();
-			break;
+				//判断SQL语句为select语句
+				char *res,tmp1[20],*tmp;
+				Select(sql_str->sstr.sel.nSelAttrs, sql_str->sstr.sel.selAttrs, sql_str->sstr.sel.nRelations, sql_str->sstr.sel.relations, sql_str->sstr.sel.nConditions, sql_str->sstr.sel.conditions, &res);
+				int colnum, rownum;
+				memcpy(tmp1, res, 20);
+				colnum = atoi(tmp1);
+				pDoc->selColNum = colnum ;//这里是查询结果的列数
+				memcpy(tmp1, res + 20, 20);
+				rownum = atoi(tmp1);
+				pDoc->selRowNum = rownum;//这里是查询结果的行数，注意表头同样需要一行
+				tmp = res + 40;
+				for (i = 0; i < rownum; i++){
+					for (int j = 0; j < colnum; j++){
+						memcpy(pDoc->selResult[i][j], tmp + (i  * colnum + colnum - 1 - j) * 20, 20);
+					}
+				}
+				pDoc->isEdit = 1;//构造好查询结果后将该标志位置为1，用于拖动外框时对查询结果进行重绘。
+				showSelResult(pDoc->selRowNum, pDoc->selColNum);//该语句即可现实构造好的查询结果
+				break;
 
 			case 2:
-			//判断SQL语句为insert语句
-			pDoc->infoCount = 1;
-			pDoc->Info[0] = "insert功能未实现";
-			displayInfo();
-			break;
+				//判断SQL语句为insert语句
+				Insert(sql_str->sstr.ins.relName, sql_str->sstr.ins.nValues, sql_str->sstr.ins.values);
+				pDoc->m_pListView->displayTabInfo(sql_str->sstr.ins.relName);
+				break;
 
 			case 3:	
-			//判断SQL语句为update语句
-			pDoc->infoCount = 1;
-			pDoc->Info[0] = "update功能未实现";
-			displayInfo();
-			break;
+				//判断SQL语句为update语句
+				Update(sql_str->sstr.upd.relName, sql_str->sstr.upd.attrName, 
+					&(sql_str->sstr.upd.value), sql_str->sstr.upd.nConditions, sql_str->sstr.upd.conditions);
+				pDoc->m_pListView->displayTabInfo(sql_str->sstr.upd.relName);
+				break;
 
 			case 4:					
-			//判断SQL语句为delete语句
-			pDoc->infoCount = 1;
-			pDoc->Info[0] = "delete功能未实现";
-			displayInfo();
+				//判断SQL语句为delete语句
+				Delete(sql_str->sstr.del.relName, sql_str->sstr.del.nConditions, sql_str->sstr.del.conditions);
+				pDoc->m_pListView->displayTabInfo(sql_str->sstr.del.relName);
 			break;
 
 			case 5:
-			//判断SQL语句为createTable语句
-			pDoc->infoCount = 1;
-			pDoc->Info[0] = "createtable功能未实现";
-			displayInfo();
-			
-			break;
+				//判断SQL语句为createTable语句
+				CreateTable(sql_str->sstr.cret.relName, sql_str->sstr.cret.attrCount, sql_str->sstr.cret.attributes);
+				pDoc->m_pTreeView->PopulateTree();
+				break;
 
 			case 6:	
-			//判断SQL语句为dropTable语句
-			pDoc->infoCount = 1;
-			pDoc->Info[0] = "droptable功能未实现";
-			displayInfo();
-			
-			break;
+				//判断SQL语句为dropTable语句
+				DropTable(sql_str->sstr.drt.relName);
+				pDoc->m_pTreeView->PopulateTree();
+				break;
 
 			case 7:
-			//判断SQL语句为createIndex语句
-			pDoc->infoCount = 1;
-			pDoc->Info[0] = "createindex功能未实现";
-			displayInfo();
+				//判断SQL语句为createIndex语句
+				CreateIndex(sql_str->sstr.crei.indexName, sql_str->sstr.crei.relName, sql_str->sstr.crei.attrName);
+				pDoc->infoCount = 1;
+				pDoc->Info[0] = "createindex成功";
+				displayInfo();
 			break;
 	
 			case 8:	
-			//判断SQL语句为dropIndex语句
-			pDoc->infoCount = 1;
-			pDoc->Info[0] = "dropindex功能未实现";
-			displayInfo();
+				//判断SQL语句为dropIndex语句
+				DropIndex(sql_str->sstr.dri.indexName);
+				pDoc->infoCount = 1;
+				pDoc->Info[0] = "dropindex成功";
+				displayInfo();
 			break;
 			
 			case 9:
-			//判断为help语句，可以给出帮助提示
-			AfxMessageBox("暂无帮助信息");
-			pDoc->infoCount = 1;
-			pDoc->Info[0] = "暂无帮助信息";	
-			displayInfo();
+				//判断为help语句，可以给出帮助提示
+				AfxMessageBox("暂无帮助信息");
+				pDoc->infoCount = 1;
+				pDoc->Info[0] = "暂无帮助信息";	
+				displayInfo();
 			break;
 		
 			case 10: 
-			//判断为exit语句，可以由此进行退出操作
-			pDoc->infoCount = 1;
-			pDoc->Info[0] = "欢迎下次使用";	
-			displayInfo();
-			AfxMessageBox("欢迎下次使用");
-			AfxGetMainWnd()->SendMessage(WM_CLOSE);
+				//判断为exit语句，可以由此进行退出操作
+				pDoc->infoCount = 1;
+				pDoc->Info[0] = "欢迎下次使用";	
+				displayInfo();
+				AfxMessageBox("欢迎下次使用");
+				AfxGetMainWnd()->SendMessage(WM_CLOSE);
 			break;		
 		}
 	}
@@ -234,6 +244,8 @@ void CEditArea::OnRunBtn()
 void CEditArea::OnInitialUpdate() 
 {
 	CEditView::OnInitialUpdate();
+	
+	// TODO: Add your specialized code here and/or call the base class
 	
 }
 
@@ -300,16 +312,17 @@ int CEditArea::iReadDictstruct(char tabname[][20],int *tabnum,char colname[][20]
 	CString t;//test
 
 	int i=0,j=0;
-	DWORD cchCurDir; 
+	DWORD cchCurDir;
+	cchCurDir = 200;
 	LPTSTR lpszCurDir; 	
 	TCHAR tchBuffer[BUFFER]; 
 	lpszCurDir = tchBuffer; 
-	GetCurrentDirectory(cchCurDir, lpszCurDir); 
+	GetCurrentDirectory(cchCurDir, lpszCurDir);
 	
 	CString	Path=lpszCurDir;
 
-	CString table=Path+"\\SYSTABLES.xx";
-	CString column=Path+"\\SYSCOLUMNS.xx";
+	CString table=Path+"\\SYSTABLES";
+	CString column=Path+"\\SYSCOLUMNS";
 
 	rc=RM_OpenFile((LPSTR)(LPCTSTR)table,&fileHandle);//去SYSTABLES表中获取表名
 	if(rc!=SUCCESS)
@@ -317,7 +330,7 @@ int CEditArea::iReadDictstruct(char tabname[][20],int *tabnum,char colname[][20]
 	rc=RM_OpenFile((LPSTR)(LPCTSTR)column,&colfilehandle);//去SYSCOLUMNS表中获取列名
 	if(rc!=SUCCESS)
 		AfxMessageBox("打开系统列文件失败");
-	rc=OpenScan(&FileScan1,&fileHandle,0,NULL);
+	rc=OpenScan(&FileScan1,&fileHandle,0,NULL,NO_HINT);
 	if(rc!=SUCCESS)
 		AfxMessageBox("初始化表文件扫描失败");
 	while(GetNextRec(&FileScan1,&rec1)==SUCCESS)
@@ -330,7 +343,7 @@ int CEditArea::iReadDictstruct(char tabname[][20],int *tabnum,char colname[][20]
 		condition.attrType=chars;
 		condition.compOp=EQual;
 		condition.Rvalue=tabname[i];
-		rc=OpenScan(&FileScan2,&colfilehandle,1,&condition);
+		rc=OpenScan(&FileScan2,&colfilehandle,1,&condition,NO_HINT);
 		if(rc!=SUCCESS)
 			AfxMessageBox("初始化列文件扫描失败");
 		while(GetNextRec(&FileScan2,&rec2)==SUCCESS)
@@ -398,6 +411,7 @@ void CEditArea::showSelResult(int row_num, int col_num)
 	dc.MoveTo(point4);
 	dc.LineTo(point1);
 	dc.SelectObject(pOldPen);
+	//		CPen pen2(PS_DASH, 1, RGB(200, 200, 200));
 	
 	POINT pBegin, pEnd;
 	for (i = 1; i<row_num; i++)
